@@ -1,0 +1,29 @@
+name: "Estada Professional Automation"
+version: "0.1.1"
+slug: "estada_professional_automation"
+description: "Professional TypeScript automation engine for Home Assistant."
+maintainer: "Michael Weller"
+url: "https://github.com/MichaelWeller/estada_homeassistant_professional_automation"
+documentation: "https://github.com/MichaelWeller/estada_homeassistant_professional_automation/tree/main/estada_professional_automation"
+arch:
+  - aarch64
+  - amd64
+  - armv7
+startup: services
+boot: auto
+init: false
+
+homeassistant_api: true
+hassio_api: true
+
+map:
+  - type: homeassistant_config
+    read_only: false
+
+options:
+  log_level: info
+  rules_path: /config/Estada_PA
+
+schema:
+  log_level: list(trace|debug|info|notice|warning|error|fatal)
+  rules_path: str

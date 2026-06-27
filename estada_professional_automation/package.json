@@ -1,0 +1,24 @@
+{
+  "name": "estada-professional-automation",
+  "version": "0.1.1",
+  "private": true,
+  "description": "Professional TypeScript automation engine for Home Assistant.",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "chokidar": "^4.0.3",
+    "esbuild": "^0.25.5",
+    "ws": "^8.18.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.4",
+    "@types/ws": "^8.18.1",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3"
+  }
+}
