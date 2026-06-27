@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2
+
+- Fixed rule loader to ignore `*.d.ts` files.
+- Exposed `EstadaProfessionalAutomationRule` globally for starter rule runtime loading.
+- Improved runtime loading checks for invalid default exports.
+
 ## 0.1.1
 
 - Prepared as standalone Home Assistant add-on repository structure.
