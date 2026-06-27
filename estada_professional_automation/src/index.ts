@@ -4,11 +4,23 @@ import path from "node:path";
 import { build } from "esbuild";
 import { pathToFileURL } from "node:url";
 import chokidar from "chokidar";
+import { EstadaProfessionalAutomationRule } from "./EstadaProfessionalAutomationRule.js";
 
 const RULES_PATH = process.env.RULES_PATH || "/config/Estada_PA";
 const TEMPLATE_PATH = "/app/project-template";
 const COMPILE_ERROR_LOG = "/config/Estada_PA_CompileErrors.log";
 const BUILD_PATH = "/tmp/estada_pa_build";
+
+function isRuleSourceFile(fileName: string): boolean {
+  return fileName.endsWith(".ts") && !fileName.endsWith(".d.ts");
+}
+
+// Keep template rules simple by making the base class available as a global symbol.
+(
+  globalThis as {
+    EstadaProfessionalAutomationRule?: typeof EstadaProfessionalAutomationRule;
+  }
+).EstadaProfessionalAutomationRule = EstadaProfessionalAutomationRule;
 
 async function exists(filePath: string): Promise<boolean> {
   try {
@@ -45,7 +57,7 @@ async function compileRules(): Promise<string[]> {
   await mkdir(BUILD_PATH, { recursive: true });
 
   const files = (await readdir(RULES_PATH))
-    .filter((fileName) => fileName.endsWith(".ts"))
+    .filter(isRuleSourceFile)
     .map((fileName) => path.join(RULES_PATH, fileName));
 
   if (files.length === 0) {
@@ -67,11 +79,16 @@ async function compileRules(): Promise<string[]> {
 
     await writeFile(COMPILE_ERROR_LOG, "", "utf8");
     console.log(`[estada-pa] compiled ${files.length} rule file(s)`);
-    return files.map((file) => path.join(BUILD_PATH, path.basename(file).replace(/\.ts$/, ".js")));
+    return files.map((file) =>
+      path.join(BUILD_PATH, path.basename(file).replace(/\.ts$/, ".js")),
+    );
   } catch (error) {
-    const message = error instanceof Error ? error.stack || error.message : String(error);
+    const message =
+      error instanceof Error ? error.stack || error.message : String(error);
     await writeFile(COMPILE_ERROR_LOG, message, "utf8");
-    console.error(`[estada-pa] compile failed. Details written to ${COMPILE_ERROR_LOG}`);
+    console.error(
+      `[estada-pa] compile failed. Details written to ${COMPILE_ERROR_LOG}`,
+    );
     return [];
   }
 }
@@ -83,7 +100,7 @@ async function loadRules(compiledFiles: string[]): Promise<void> {
       const imported = await import(moduleUrl);
       const RuleClass = imported.default;
 
-      if (!RuleClass) {
+      if (typeof RuleClass !== "function") {
         console.warn(`[estada-pa] ${compiledFile} has no default export`);
         continue;
       }
@@ -91,7 +108,9 @@ async function loadRules(compiledFiles: string[]): Promise<void> {
       const rule = new RuleClass();
       if (typeof rule.run === "function") {
         const result = await rule.run();
-        console.log(`[estada-pa] rule ${RuleClass.name || compiledFile} run() => ${result}`);
+        console.log(
+          `[estada-pa] rule ${RuleClass.name || compiledFile} run() => ${result}`,
+        );
       }
     } catch (error) {
       console.error(`[estada-pa] failed to load rule ${compiledFile}`, error);
@@ -111,21 +130,24 @@ async function main(): Promise<void> {
   await ensureStarterProject();
   await compileAndLoad();
 
-  chokidar.watch(RULES_PATH, {
-    ignoreInitial: true,
-    depth: 0,
-  }).on("all", async (event, filePath) => {
-    if (!filePath.endsWith(".ts")) {
-      return;
-    }
+  chokidar
+    .watch(RULES_PATH, {
+      ignoreInitial: true,
+      depth: 0,
+    })
+    .on("all", async (event, filePath) => {
+      if (!filePath.endsWith(".ts")) {
+        return;
+      }
 
-    console.log(`[estada-pa] ${event}: ${filePath}`);
-    await compileAndLoad();
-  });
+      console.log(`[estada-pa] ${event}: ${filePath}`);
+      await compileAndLoad();
+    });
 }
 
 main().catch(async (error) => {
-  const message = error instanceof Error ? error.stack || error.message : String(error);
+  const message =
+    error instanceof Error ? error.stack || error.message : String(error);
   await writeFile(COMPILE_ERROR_LOG, message, "utf8").catch(() => undefined);
   console.error("[estada-pa] fatal startup error", error);
   process.exit(1);
