@@ -42,8 +42,10 @@ setup_ssh() {
 
 	if [ -z "${SSH_PASSWORD}" ]; then
 		echo "[ERROR] SSH is enabled, but no ssh_password is configured"
-		exit 1
+		return 1
 	fi
+
+	echo "[INFO] Setting up SSH/SFTP..."
 
 	if ! getent group sshusers >/dev/null 2>&1; then
 		addgroup -S sshusers >/dev/null 2>&1 || true
@@ -52,16 +54,23 @@ setup_ssh() {
 	if id -u "${SSH_USERNAME}" >/dev/null 2>&1; then
 		shell="$(getent passwd "${SSH_USERNAME}" | cut -d: -f7 || true)"
 		if [ "${shell}" != "/bin/sh" ]; then
+			echo "[INFO] Removing existing user ${SSH_USERNAME}..."
 			deluser "${SSH_USERNAME}" >/dev/null 2>&1 || true
 		fi
 	fi
 
 	if ! id -u "${SSH_USERNAME}" >/dev/null 2>&1; then
+		echo "[INFO] Creating user ${SSH_USERNAME}..."
 		adduser -D -s /bin/sh -G sshusers -h "${RULES_PATH}" "${SSH_USERNAME}"
 	fi
 
 	echo "${SSH_USERNAME}:${SSH_PASSWORD}" | chpasswd
-	ssh-keygen -A >/dev/null 2>&1
+
+	echo "[INFO] Generating SSH keys..."
+	if ! ssh-keygen -A 2>&1; then
+		echo "[ERROR] Failed to generate SSH keys"
+		return 1
+	fi
 
 	cat > /etc/ssh/sshd_config.estada <<EOF
 Port ${SSH_PORT}
@@ -80,10 +89,12 @@ Match User ${SSH_USERNAME}
 	ForceCommand internal-sftp
 EOF
 
-	if /usr/sbin/sshd -f /etc/ssh/sshd_config.estada; then
-		echo "[INFO] SSH/SFTP enabled on port ${SSH_PORT} for user ${SSH_USERNAME}"
+	echo "[INFO] Starting SSH daemon..."
+	if /usr/sbin/sshd -f /etc/ssh/sshd_config.estada 2>&1; then
+		echo "[INFO] ✓ SSH/SFTP enabled on port ${SSH_PORT} for user ${SSH_USERNAME}"
+		return 0
 	else
-		echo "[ERROR] Failed to start SSH/SFTP server"
+		echo "[ERROR] Failed to start SSH daemon. Check configuration."
 		return 1
 	fi
 }
@@ -158,11 +169,7 @@ fi
 check_standard_samba
 
 # Setup development services
-if ! setup_ssh; then
-	echo "[ERROR] Failed to setup SSH/SFTP. Add-on startup aborted."
-	exit 1
-fi
-
+setup_ssh || echo "[WARNING] SSH/SFTP setup failed, but continuing..."
 setup_samba
 
 NODE_ARGS="--enable-source-maps"

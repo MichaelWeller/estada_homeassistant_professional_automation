@@ -1,5 +1,5 @@
 ﻿name: "Estada Professional Automation"
-version: "0.2.2"
+version: "0.2.3"
 slug: "estada_professional_automation"
 description: "Professional TypeScript automation engine for Home Assistant."
 maintainer: "Michael Weller"
@@ -53,5 +53,6 @@ schema:
   samba_share_name: str
   enable_debug: bool
   debug_port: port
+
 
 
