@@ -168,8 +168,26 @@ fi
 check_standard_samba || true
 
 # Setup development services
-setup_ssh || echo "[WARNING] SSH/SFTP setup failed"
-setup_samba || echo "[WARNING] Samba setup failed"
+echo "[INFO] Setting up development services..."
+setup_ssh
+SETUP_SSH_RESULT=$?
+
+if [ $SETUP_SSH_RESULT -eq 0 ]; then
+	echo "[INFO] ✓ SSH/SFTP setup successful"
+else
+	echo "[ERROR] SSH/SFTP setup failed with code $SETUP_SSH_RESULT"
+fi
+
+setup_samba
+SETUP_SAMBA_RESULT=$?
+
+if [ $SETUP_SAMBA_RESULT -eq 0 ]; then
+	echo "[INFO] ✓ Samba setup successful"
+else
+	echo "[WARNING] Samba setup failed with code $SETUP_SAMBA_RESULT"
+fi
+
+echo "[INFO] Starting Estada Professional Automation runtime..."
 
 NODE_ARGS="--enable-source-maps"
 if bashio::config.true 'enable_debug'; then
