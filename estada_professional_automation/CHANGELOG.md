@@ -1,4 +1,10 @@
-# Changelog
+﻿# Changelog
+
+## 0.2.1
+
+- Fixed SSH/SFTP configuration (removed unsupported UsePAM option)
+- Improved error handling for SSH and Samba startup
+- Added error checks and better logging for service initialization
 
 ## 0.2.0
 
@@ -41,3 +47,4 @@
 - Added `project-template/`.
 - Added first-start copy logic for `/config/Estada_PA`.
 - Added minimal TypeScript runtime, compiler and rule loader.
+

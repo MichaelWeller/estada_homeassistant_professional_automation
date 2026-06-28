@@ -71,7 +71,6 @@ PermitRootLogin no
 PubkeyAuthentication no
 KbdInteractiveAuthentication no
 ChallengeResponseAuthentication no
-UsePAM no
 Subsystem sftp internal-sftp
 AllowUsers ${SSH_USERNAME}
 PermitTTY yes
@@ -79,8 +78,12 @@ AllowTcpForwarding yes
 X11Forwarding no
 EOF
 
-	/usr/sbin/sshd -f /etc/ssh/sshd_config.estada
-	echo "[INFO] SSH/SFTP enabled on port ${SSH_PORT} for user ${SSH_USERNAME}"
+	if /usr/sbin/sshd -f /etc/ssh/sshd_config.estada; then
+		echo "[INFO] SSH/SFTP enabled on port ${SSH_PORT} for user ${SSH_USERNAME}"
+	else
+		echo "[ERROR] Failed to start SSH/SFTP server"
+		return 1
+	fi
 }
 
 setup_samba() {
@@ -95,7 +98,7 @@ setup_samba() {
 	if ! command -v smbd >/dev/null 2>&1; then
 		echo "[INFO] Installing Samba..."
 		apk add --no-cache samba >/dev/null 2>&1 || {
-			echo "[WARNING] Failed to install Samba. Disabling Samba share."
+			echo "[ERROR] Failed to install Samba package. Disabling Samba share."
 			return
 		}
 	fi
@@ -127,8 +130,15 @@ setup_samba() {
 EOF
 
 	# Start Samba
-	smbd -D -s /etc/samba/smb.conf
-	nmbd -D -s /etc/samba/smb.conf
+	if smbd -D -s /etc/samba/smb.conf 2>&1 | grep -q "Unable"; then
+		echo "[ERROR] Failed to start Samba daemon (smbd)"
+		return
+	fi
+
+	if nmbd -D -s /etc/samba/smb.conf 2>&1 | grep -q "Unable"; then
+		echo "[ERROR] Failed to start Samba NetBIOS daemon (nmbd)"
+		return
+	fi
 
 	echo "[INFO] Samba share '${SAMBA_SHARE_NAME}' enabled on port 445"
 	echo "[INFO] Access via: \\\\<HA_IP>\\${SAMBA_SHARE_NAME}"
@@ -146,7 +156,11 @@ fi
 check_standard_samba
 
 # Setup development services
-setup_ssh
+if ! setup_ssh; then
+	echo "[ERROR] Failed to setup SSH/SFTP. Add-on startup aborted."
+	exit 1
+fi
+
 setup_samba
 
 NODE_ARGS="--enable-source-maps"
