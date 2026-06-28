@@ -71,11 +71,13 @@ PermitRootLogin no
 PubkeyAuthentication no
 KbdInteractiveAuthentication no
 ChallengeResponseAuthentication no
-Subsystem sftp internal-sftp
-AllowUsers ${SSH_USERNAME}
-PermitTTY yes
-AllowTcpForwarding yes
 X11Forwarding no
+AllowUsers ${SSH_USERNAME}
+Subsystem sftp internal-sftp
+
+Match User ${SSH_USERNAME}
+	ChrootDirectory ${RULES_PATH}
+	ForceCommand internal-sftp
 EOF
 
 	if /usr/sbin/sshd -f /etc/ssh/sshd_config.estada; then

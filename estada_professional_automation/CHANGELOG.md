@@ -1,5 +1,11 @@
 ﻿# Changelog
 
+## 0.2.2
+
+- Simplified SSH/SFTP configuration for better compatibility
+- Fixed internal-sftp subsystem configuration
+- Improved SFTP chroot directory setup
+
 ## 0.2.1
 
 - Fixed SSH/SFTP configuration (removed unsupported UsePAM option)
@@ -47,4 +53,5 @@
 - Added `project-template/`.
 - Added first-start copy logic for `/config/Estada_PA`.
 - Added minimal TypeScript runtime, compiler and rule loader.
+
 
