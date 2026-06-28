@@ -4,12 +4,24 @@ import path from "node:path";
 import { build } from "esbuild";
 import { pathToFileURL } from "node:url";
 import chokidar from "chokidar";
-import { EstadaProfessionalAutomationRule } from "./EstadaProfessionalAutomationRule.js";
+import {
+  EstadaProfessionalAutomationRule,
+  type Entity,
+} from "./EstadaProfessionalAutomationRule.js";
+import { HomeAssistantClient } from "./HomeAssistantClient.js";
 
 const RULES_PATH = process.env.RULES_PATH || "/config/Estada_PA";
 const TEMPLATE_PATH = "/app/project-template";
 const COMPILE_ERROR_LOG = "/config/Estada_PA_CompileErrors.log";
 const BUILD_PATH = "/tmp/estada_pa_build";
+const HA_URL = process.env.HA_URL || "ws://supervisor/core/websocket";
+
+const rawHaToken = process.env.HA_TOKEN ?? process.env.SUPERVISOR_TOKEN;
+const HA_TOKEN = rawHaToken
+  ?.trim()
+  .replace(/^['\"]|['\"]$/g, "")
+  .replace(/^Bearer\s+/i, "")
+  .trim();
 
 function isRuleSourceFile(fileName: string): boolean {
   return fileName.endsWith(".ts") && !fileName.endsWith(".d.ts");
@@ -73,7 +85,7 @@ async function compileRules(): Promise<string[]> {
       platform: "node",
       format: "esm",
       target: "node22",
-      sourcemap: false,
+      sourcemap: true,
       logLevel: "silent",
     });
 
@@ -93,7 +105,12 @@ async function compileRules(): Promise<string[]> {
   }
 }
 
-async function loadRules(compiledFiles: string[]): Promise<void> {
+async function loadRules(
+  compiledFiles: string[],
+  haClient: HomeAssistantClient,
+): Promise<EstadaProfessionalAutomationRule[]> {
+  const loadedRules: EstadaProfessionalAutomationRule[] = [];
+
   for (const compiledFile of compiledFiles) {
     try {
       const moduleUrl = `${pathToFileURL(compiledFile).href}?t=${Date.now()}`;
@@ -106,29 +123,95 @@ async function loadRules(compiledFiles: string[]): Promise<void> {
       }
 
       const rule = new RuleClass();
+      rule.attachHost({
+        getEntity: (entityName: string) => haClient.getEntity(entityName),
+        setValue: async (
+          value: string | number | boolean | null | undefined,
+          entityName: string,
+          attributeName?: string,
+        ) => {
+          await haClient.setEntity(value, entityName, attributeName);
+        },
+        log: (message: string) => console.log(`[estada-pa] ${message}`),
+        error: (message: string, error?: unknown) =>
+          console.error(`[estada-pa] ${message}`, error),
+      });
+
       if (typeof rule.run === "function") {
         const result = await rule.run();
         console.log(
           `[estada-pa] rule ${RuleClass.name || compiledFile} run() => ${result}`,
         );
+
+        if (result !== false) {
+          loadedRules.push(rule);
+        }
       }
     } catch (error) {
       console.error(`[estada-pa] failed to load rule ${compiledFile}`, error);
     }
   }
+
+  return loadedRules;
 }
 
-async function compileAndLoad(): Promise<void> {
+async function compileAndLoad(
+  haClient: HomeAssistantClient,
+): Promise<EstadaProfessionalAutomationRule[]> {
   const compiledFiles = await compileRules();
-  await loadRules(compiledFiles);
+  return await loadRules(compiledFiles, haClient);
+}
+
+function getChangedProperties(
+  oldEntity: Entity | undefined,
+  newEntity: Entity,
+): Array<[string, unknown, unknown]> {
+  const changes: Array<[string, unknown, unknown]> = [];
+
+  if (!oldEntity || oldEntity.state !== newEntity.state) {
+    changes.push(["state", oldEntity?.state, newEntity.state]);
+  }
+
+  const keys = new Set([
+    ...Object.keys(oldEntity?.attributes ?? {}),
+    ...Object.keys(newEntity.attributes ?? {}),
+  ]);
+
+  for (const key of keys) {
+    const oldValue = oldEntity?.attributes?.[key];
+    const newValue = newEntity.attributes?.[key];
+    if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
+      changes.push([key, oldValue, newValue]);
+    }
+  }
+
+  return changes;
 }
 
 async function main(): Promise<void> {
   console.log("[estada-pa] Estada Professional Automation starting");
   console.log(`[estada-pa] rules path: ${RULES_PATH}`);
 
+  if (!HA_TOKEN) {
+    throw new Error(
+      "HA_TOKEN is missing. Ensure homeassistant_api is enabled or set HA_TOKEN explicitly.",
+    );
+  }
+
+  const haClient = new HomeAssistantClient(HA_URL, HA_TOKEN);
+  let activeRules: EstadaProfessionalAutomationRule[] = [];
+
   await ensureStarterProject();
-  await compileAndLoad();
+  activeRules = await compileAndLoad(haClient);
+
+  haClient.onStateChanged(async (newEntity, oldEntity) => {
+    const changes = getChangedProperties(oldEntity, newEntity);
+    for (const [propertyName, oldValue, newValue] of changes) {
+      for (const rule of activeRules) {
+        rule.onEntityChange(newEntity, propertyName, oldValue, newValue);
+      }
+    }
+  });
 
   chokidar
     .watch(RULES_PATH, {
@@ -136,13 +219,16 @@ async function main(): Promise<void> {
       depth: 0,
     })
     .on("all", async (event, filePath) => {
-      if (!filePath.endsWith(".ts")) {
+      const fileName = path.basename(filePath);
+      if (!isRuleSourceFile(fileName)) {
         return;
       }
 
       console.log(`[estada-pa] ${event}: ${filePath}`);
-      await compileAndLoad();
+      activeRules = await compileAndLoad(haClient);
     });
+
+  await haClient.connectForever();
 }
 
 main().catch(async (error) => {

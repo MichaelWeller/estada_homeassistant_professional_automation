@@ -1,0 +1,17 @@
+configuration:
+  log_level:
+    name: Log level
+  rules_path:
+    name: Rules directory
+  enable_sftp:
+    name: Enable SFTP server
+  sftp_port:
+    name: SFTP port
+  sftp_username:
+    name: SFTP username
+  sftp_password:
+    name: SFTP password
+  enable_debug:
+    name: Enable Node Inspector
+  debug_port:
+    name: Debug port

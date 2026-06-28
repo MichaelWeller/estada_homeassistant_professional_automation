@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.3
+
+- Added optional SFTP endpoint with dedicated user credentials and restricted `/config/Estada_PA` start directory.
+- Added optional Node Inspector support on port 9229.
+- Enabled source maps in runtime and dynamic rule compilation for TypeScript debugging.
+
 ## 0.1.2
 
 - Fixed rule loader to ignore `*.d.ts` files.

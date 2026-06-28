@@ -5,6 +5,8 @@
     "moduleResolution": "NodeNext",
     "strict": true,
     "skipLibCheck": true,
+    "sourceMap": true,
+    "inlineSources": true,
     "outDir": "dist",
     "rootDir": "src",
     "types": ["node"]

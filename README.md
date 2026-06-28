@@ -21,3 +21,35 @@ This repository contains standalone Home Assistant add-ons.
 ## Development
 
 The add-on source is located in `estada_professional_automation/`.
+
+## Versioning
+
+Use semantic versioning for releases:
+
+- Patch (`x.y.z` -> `x.y.z+1`): bug fixes and small internal changes.
+- Minor (`x.y.z` -> `x.y+1.0`): new backward-compatible features.
+- Major (`x.y.z` -> `x+1.0.0`): breaking changes.
+
+For Home Assistant add-ons, bump the version on every published change.
+
+### Version bump script
+
+PowerShell script:
+
+`scripts/bump-version.ps1`
+
+Examples:
+
+```powershell
+# Preview next patch version without writing files
+./scripts/bump-version.ps1 -Type patch -DryRun
+
+# Bump patch version and add a changelog placeholder entry
+./scripts/bump-version.ps1 -Type patch -ReleaseNote "- Fix rule loader behavior."
+
+# Set an explicit version
+./scripts/bump-version.ps1 -SetVersion 0.2.0 -ReleaseNote "- First feature release."
+
+# Bump and create a commit
+./scripts/bump-version.ps1 -Type patch -Commit -ReleaseNote "- Fix startup issue in HA."
+```
