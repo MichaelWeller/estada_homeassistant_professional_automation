@@ -81,11 +81,8 @@ KbdInteractiveAuthentication no
 ChallengeResponseAuthentication no
 X11Forwarding no
 AllowUsers ${SSH_USERNAME}
+PermitTTY no
 Subsystem sftp internal-sftp
-
-Match User ${SSH_USERNAME}
-	ChrootDirectory ${RULES_PATH}
-	ForceCommand internal-sftp
 EOF
 
 	echo "[INFO] Starting SSH daemon..."
