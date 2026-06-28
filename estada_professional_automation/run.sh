@@ -10,28 +10,10 @@ export ENABLE_SSH="$(bashio::config 'enable_ssh')"
 export SSH_PORT="$(bashio::config 'ssh_port')"
 export SSH_USERNAME="$(bashio::config 'ssh_username')"
 export SSH_PASSWORD="$(bashio::config 'ssh_password')"
-export ENABLE_SAMBA="$(bashio::config 'enable_samba')"
-export SAMBA_SHARE_NAME="$(bashio::config 'samba_share_name')"
 export ENABLE_DEBUG="$(bashio::config 'enable_debug')"
 export DEBUG_PORT="$(bashio::config 'debug_port')"
 
 mkdir -p "${RULES_PATH}"
-
-check_standard_samba() {
-	echo "[INFO] Checking for standard Samba add-on..."
-	
-	# Try to query add-on info via Supervisor API
-	if command -v curl >/dev/null 2>&1; then
-		if curl -s -f "http://supervisor/addons/samba" \
-			-H "Authorization: Bearer ${SUPERVISOR_TOKEN}" \
-			-H "Content-Type: application/json" >/dev/null 2>&1; then
-			echo "[INFO] ✓ Standard Samba add-on detected"
-			return 0
-		fi
-	fi
-	
-	return 1
-}
 
 setup_ssh() {
 	if ! bashio::config.true 'enable_ssh'; then
@@ -95,72 +77,6 @@ EOF
 	fi
 }
 
-setup_samba() {
-	if ! bashio::config.true 'enable_samba'; then
-		echo "[INFO] Samba is disabled"
-		return 0
-	fi
-
-	# Check if standard Samba add-on is running
-	if check_standard_samba >/dev/null 2>&1; then
-		echo "[WARNING] Standard Samba add-on detected. Disabling internal Samba share."
-		echo "[INFO] Please use the standard add-on for Samba shares."
-		return 0
-	fi
-
-	echo "[INFO] Setting up Samba share..."
-
-	# Check if Samba is installed
-	if ! command -v smbd >/dev/null 2>&1; then
-		echo "[WARNING] Samba is not installed. Skipping Samba share setup."
-		return 0
-	fi
-
-	# Create Samba config directory
-	mkdir -p /etc/samba
-
-	# Generate Samba config
-	cat > /etc/samba/smb.conf <<EOF
-[global]
-	workgroup = WORKGROUP
-	server string = Estada Professional Automation
-	netbios name = ESTADA-PA
-	map to guest = Bad User
-	log file = /tmp/samba.log
-	max log size = 50
-	guest account = nobody
-
-[${SAMBA_SHARE_NAME}]
-	path = ${RULES_PATH}
-	comment = Estada PA Rules Directory
-	browsable = yes
-	read only = no
-	guest ok = yes
-	create mask = 0755
-	directory mask = 0755
-	force user = nobody
-	force group = nogroup
-EOF
-
-	echo "[INFO] Starting Samba daemon..."
-	
-	# Start smbd
-	if ! smbd -D -s /etc/samba/smb.conf 2>&1; then
-		echo "[WARNING] Failed to start smbd daemon (continuing)"
-	fi
-	echo "[INFO] smbd started"
-
-	# Start nmbd (with timeout, it sometimes hangs)
-	if ! timeout 5 nmbd -D -s /etc/samba/smb.conf 2>&1; then
-		echo "[WARNING] nmbd daemon startup timeout or failed (continuing anyway)"
-	else
-		echo "[INFO] nmbd started"
-	fi
-
-	echo "[INFO] ✓ Samba share '${SAMBA_SHARE_NAME}' enabled on port 445"
-	echo "[INFO] Access via: \\\\<HA_IP>\\${SAMBA_SHARE_NAME}"
-	return 0
-}
 
 echo "[INFO] Estada Professional Automation starting"
 echo "[INFO] rules_path=${RULES_PATH} log_level=${LOG_LEVEL}"
@@ -169,9 +85,6 @@ if [ ! -f /app/dist/index.js ]; then
 	echo "[ERROR] Missing /app/dist/index.js. Build step likely failed during image creation."
 	exit 1
 fi
-
-# Check for standard Samba add-on (just informational)
-check_standard_samba || true
 
 # Setup development services
 echo "[INFO] Setting up development services..."
@@ -182,15 +95,6 @@ if [ $SETUP_SSH_RESULT -eq 0 ]; then
 	echo "[INFO] ✓ SSH/SFTP setup successful"
 else
 	echo "[WARNING] SSH/SFTP setup had issues (continuing with limited functionality)"
-fi
-
-setup_samba
-SETUP_SAMBA_RESULT=$?
-
-if [ $SETUP_SAMBA_RESULT -eq 0 ]; then
-	echo "[INFO] ✓ Samba setup successful"
-else
-	echo "[WARNING] Samba setup failed with code $SETUP_SAMBA_RESULT"
 fi
 
 echo "[INFO] Starting Estada Professional Automation runtime..."

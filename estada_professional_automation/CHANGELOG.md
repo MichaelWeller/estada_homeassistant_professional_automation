@@ -1,5 +1,9 @@
 ﻿# Changelog
 
+## 0.2.10
+
+- Describe changes.
+
 ## 0.2.9
 
 - Describe changes.
@@ -81,6 +85,7 @@
 - Added `project-template/`.
 - Added first-start copy logic for `/config/Estada_PA`.
 - Added minimal TypeScript runtime, compiler and rule loader.
+
 
 
 
