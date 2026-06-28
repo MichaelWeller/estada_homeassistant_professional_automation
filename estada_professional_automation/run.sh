@@ -101,15 +101,23 @@ setup_samba() {
 		return 0
 	fi
 
+	# Check if standard Samba add-on is running
+	if check_standard_samba >/dev/null 2>&1; then
+		echo "[WARNING] Standard Samba add-on detected. Disabling internal Samba share."
+		echo "[INFO] Please use the standard add-on for Samba shares."
+		return 0
+	fi
+
 	echo "[INFO] Setting up Samba share..."
 
 	# Install Samba if not already installed
 	if ! command -v smbd >/dev/null 2>&1; then
-		echo "[INFO] Installing Samba..."
-		apk add --no-cache samba >/dev/null 2>&1 || {
-			echo "[ERROR] Failed to install Samba package"
+		echo "[INFO] Installing Samba (this may take a moment)..."
+		if ! timeout 60 apk add --no-cache samba >/dev/null 2>&1; then
+			echo "[ERROR] Failed to install Samba package (timeout or error)"
 			return 1
-		}
+		fi
+		echo "[INFO] Samba installed successfully"
 	fi
 
 	# Create Samba config directory
@@ -138,18 +146,24 @@ setup_samba() {
 	force group = nogroup
 EOF
 
-	# Start Samba
+	echo "[INFO] Starting Samba daemon..."
+	
+	# Start smbd
 	if ! smbd -D -s /etc/samba/smb.conf 2>&1; then
-		echo "[ERROR] Failed to start smbd"
+		echo "[ERROR] Failed to start smbd daemon"
 		return 1
 	fi
+	echo "[INFO] smbd started"
 
-	if ! nmbd -D -s /etc/samba/smb.conf 2>&1; then
-		echo "[ERROR] Failed to start nmbd"
-		return 1
+	# Start nmbd (with timeout, it sometimes hangs)
+	if ! timeout 5 nmbd -D -s /etc/samba/smb.conf 2>&1; then
+		echo "[WARNING] nmbd daemon startup timeout or failed (continuing anyway)"
+	else
+		echo "[INFO] nmbd started"
 	fi
 
 	echo "[INFO] ✓ Samba share '${SAMBA_SHARE_NAME}' enabled on port 445"
+	echo "[INFO] Access via: \\\\<HA_IP>\\${SAMBA_SHARE_NAME}"
 	return 0
 }
 
