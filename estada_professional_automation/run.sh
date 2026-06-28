@@ -25,19 +25,18 @@ check_standard_samba() {
 		if curl -s -f "http://supervisor/addons/samba" \
 			-H "Authorization: Bearer ${SUPERVISOR_TOKEN}" \
 			-H "Content-Type: application/json" >/dev/null 2>&1; then
-			echo "[INFO] ✓ Standard Samba add-on detected (samba)"
+			echo "[INFO] ✓ Standard Samba add-on detected"
 			return 0
 		fi
 	fi
 	
-	echo "[INFO] Standard Samba add-on not detected"
 	return 1
 }
 
 setup_ssh() {
 	if ! bashio::config.true 'enable_ssh'; then
 		echo "[INFO] SSH is disabled"
-		return
+		return 0
 	fi
 
 	if [ -z "${SSH_PASSWORD}" ]; then
@@ -94,7 +93,7 @@ EOF
 		echo "[INFO] ✓ SSH/SFTP enabled on port ${SSH_PORT} for user ${SSH_USERNAME}"
 		return 0
 	else
-		echo "[ERROR] Failed to start SSH daemon. Check configuration."
+		echo "[ERROR] Failed to start SSH daemon"
 		return 1
 	fi
 }
@@ -102,7 +101,7 @@ EOF
 setup_samba() {
 	if ! bashio::config.true 'enable_samba'; then
 		echo "[INFO] Samba is disabled"
-		return
+		return 0
 	fi
 
 	echo "[INFO] Setting up Samba share..."
@@ -111,8 +110,8 @@ setup_samba() {
 	if ! command -v smbd >/dev/null 2>&1; then
 		echo "[INFO] Installing Samba..."
 		apk add --no-cache samba >/dev/null 2>&1 || {
-			echo "[ERROR] Failed to install Samba package. Disabling Samba share."
-			return
+			echo "[ERROR] Failed to install Samba package"
+			return 1
 		}
 	fi
 
@@ -143,18 +142,18 @@ setup_samba() {
 EOF
 
 	# Start Samba
-	if smbd -D -s /etc/samba/smb.conf 2>&1 | grep -q "Unable"; then
-		echo "[ERROR] Failed to start Samba daemon (smbd)"
-		return
+	if ! smbd -D -s /etc/samba/smb.conf 2>&1; then
+		echo "[ERROR] Failed to start smbd"
+		return 1
 	fi
 
-	if nmbd -D -s /etc/samba/smb.conf 2>&1 | grep -q "Unable"; then
-		echo "[ERROR] Failed to start Samba NetBIOS daemon (nmbd)"
-		return
+	if ! nmbd -D -s /etc/samba/smb.conf 2>&1; then
+		echo "[ERROR] Failed to start nmbd"
+		return 1
 	fi
 
-	echo "[INFO] Samba share '${SAMBA_SHARE_NAME}' enabled on port 445"
-	echo "[INFO] Access via: \\\\<HA_IP>\\${SAMBA_SHARE_NAME}"
+	echo "[INFO] ✓ Samba share '${SAMBA_SHARE_NAME}' enabled on port 445"
+	return 0
 }
 
 echo "[INFO] Estada Professional Automation starting"
@@ -165,17 +164,17 @@ if [ ! -f /app/dist/index.js ]; then
 	exit 1
 fi
 
-# Check for standard Samba add-on
-check_standard_samba
+# Check for standard Samba add-on (just informational)
+check_standard_samba || true
 
 # Setup development services
-setup_ssh || echo "[WARNING] SSH/SFTP setup failed, but continuing..."
-setup_samba
+setup_ssh || echo "[WARNING] SSH/SFTP setup failed"
+setup_samba || echo "[WARNING] Samba setup failed"
 
 NODE_ARGS="--enable-source-maps"
 if bashio::config.true 'enable_debug'; then
 	NODE_ARGS="${NODE_ARGS} --inspect=0.0.0.0:${DEBUG_PORT}"
-	echo "[INFO] Node Inspector enabled on port ${DEBUG_PORT}"
+	echo "[INFO] ✓ Node Inspector enabled on port ${DEBUG_PORT}"
 fi
 
 exec node ${NODE_ARGS} /app/dist/index.js
