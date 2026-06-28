@@ -1,7 +1,7 @@
 ARG BUILD_FROM=ghcr.io/home-assistant/base:latest
 FROM ${BUILD_FROM}
 
-RUN apk add --no-cache nodejs npm openssh
+RUN apk add --no-cache nodejs npm openssh samba
 
 WORKDIR /app
 

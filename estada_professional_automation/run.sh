@@ -110,14 +110,10 @@ setup_samba() {
 
 	echo "[INFO] Setting up Samba share..."
 
-	# Install Samba if not already installed
+	# Check if Samba is installed
 	if ! command -v smbd >/dev/null 2>&1; then
-		echo "[INFO] Installing Samba (this may take a moment)..."
-		if ! timeout 60 apk add --no-cache samba >/dev/null 2>&1; then
-			echo "[ERROR] Failed to install Samba package (timeout or error)"
-			return 1
-		fi
-		echo "[INFO] Samba installed successfully"
+		echo "[ERROR] Samba is not installed. Add 'samba' to the Dockerfile dependencies."
+		return 1
 	fi
 
 	# Create Samba config directory
