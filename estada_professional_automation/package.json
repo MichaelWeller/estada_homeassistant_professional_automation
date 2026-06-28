@@ -1,6 +1,6 @@
 ﻿{
     "name":  "estada-professional-automation",
-    "version":  "0.2.8",
+    "version":  "0.2.9",
     "private":  true,
     "description":  "Professional TypeScript automation engine for Home Assistant.",
     "type":  "module",

@@ -112,8 +112,8 @@ setup_samba() {
 
 	# Check if Samba is installed
 	if ! command -v smbd >/dev/null 2>&1; then
-		echo "[ERROR] Samba is not installed. Add 'samba' to the Dockerfile dependencies."
-		return 1
+		echo "[WARNING] Samba is not installed. Skipping Samba share setup."
+		return 0
 	fi
 
 	# Create Samba config directory
@@ -146,8 +146,7 @@ EOF
 	
 	# Start smbd
 	if ! smbd -D -s /etc/samba/smb.conf 2>&1; then
-		echo "[ERROR] Failed to start smbd daemon"
-		return 1
+		echo "[WARNING] Failed to start smbd daemon (continuing)"
 	fi
 	echo "[INFO] smbd started"
 
@@ -182,7 +181,7 @@ SETUP_SSH_RESULT=$?
 if [ $SETUP_SSH_RESULT -eq 0 ]; then
 	echo "[INFO] ✓ SSH/SFTP setup successful"
 else
-	echo "[ERROR] SSH/SFTP setup failed with code $SETUP_SSH_RESULT"
+	echo "[WARNING] SSH/SFTP setup had issues (continuing with limited functionality)"
 fi
 
 setup_samba
