@@ -1,5 +1,5 @@
 name: "Estada Professional Automation"
-version: "0.1.4"
+version: "0.2.0"
 slug: "estada_professional_automation"
 description: "Professional TypeScript automation engine for Home Assistant."
 maintainer: "Michael Weller"

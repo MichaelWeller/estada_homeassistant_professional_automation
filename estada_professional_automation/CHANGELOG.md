@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.0
+
+- Added optional Samba/SMB share support (`enable_samba`) for direct network folder access.
+- Added automatic detection of standard Home Assistant Samba add-on with warning if both are active.
+- Reverted default access method from Remote-SSH to SFTP + Node Inspector for simpler development workflow.
+- Enhanced VS Code documentation with step-by-step SFTP setup guide.
+- Added VS Code debug configuration (launch.json) for easy Node Inspector attachment.
+- Provided sftp.json configuration file for automatic SFTP connection.
+- Added Samba vs SSH/SFTP comparison table in README.
+- Improved troubleshooting section with both SFTP and Samba scenarios.
+
 ## 0.1.4
 
 - Switched from SFTP-only mode to default-enabled SSH/Remote-SSH access (still switchable in config).
