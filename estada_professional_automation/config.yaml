@@ -19,10 +19,12 @@ hassio_api: true
 ports:
   2222/tcp: 2222
   9229/tcp: 9229
+  445/tcp: 445
 
 ports_description:
   2222/tcp: "SSH/SFTP"
   9229/tcp: "Node Inspector"
+  445/tcp: "Samba/SMB (optional)"
 
 map:
   - type: homeassistant_config
@@ -35,6 +37,8 @@ options:
   ssh_port: 2222
   ssh_username: estada
   ssh_password: estada
+  enable_samba: false
+  samba_share_name: Estada_PA
   enable_debug: true
   debug_port: 9229
 
@@ -45,5 +49,7 @@ schema:
   ssh_port: port
   ssh_username: str
   ssh_password: str
+  enable_samba: bool
+  samba_share_name: str
   enable_debug: bool
   debug_port: port

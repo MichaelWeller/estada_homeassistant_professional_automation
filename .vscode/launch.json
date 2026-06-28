@@ -1,0 +1,17 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "attach",
+      "name": "Attach to Estada PA",
+      "address": "192.168.2.14",
+      "port": 9229,
+      "localRoot": "${workspaceFolder}/src",
+      "remoteRoot": "/config/Estada_PA",
+      "skipFiles": ["<node_internals>/**"],
+      "sourceMaps": true,
+      "outFiles": ["${workspaceFolder}/dist/**/*.js"]
+    }
+  ]
+}
