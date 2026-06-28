@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.4
+
+- Switched from SFTP-only mode to default-enabled SSH/Remote-SSH access (still switchable in config).
+- Enabled debugging by default (`enable_debug: true`) to lower onboarding friction.
+- Added detailed VS Code Remote-SSH and debugger attach instructions to add-on README.
+
 ## 0.1.3
 
 - Added optional SFTP endpoint with dedicated user credentials and restricted `/config/Estada_PA` start directory.

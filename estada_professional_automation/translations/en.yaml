@@ -3,14 +3,14 @@ configuration:
     name: Log level
   rules_path:
     name: Rules directory
-  enable_sftp:
-    name: Enable SFTP server
-  sftp_port:
-    name: SFTP port
-  sftp_username:
-    name: SFTP username
-  sftp_password:
-    name: SFTP password
+  enable_ssh:
+    name: Enable SSH/Remote-SSH access
+  ssh_port:
+    name: SSH port
+  ssh_username:
+    name: SSH username
+  ssh_password:
+    name: SSH password
   enable_debug:
     name: Enable Node Inspector
   debug_port:

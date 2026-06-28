@@ -1,5 +1,5 @@
 name: "Estada Professional Automation"
-version: "0.1.3"
+version: "0.1.4"
 slug: "estada_professional_automation"
 description: "Professional TypeScript automation engine for Home Assistant."
 maintainer: "Michael Weller"
@@ -21,7 +21,7 @@ ports:
   9229/tcp: 9229
 
 ports_description:
-  2222/tcp: "SFTP"
+  2222/tcp: "SSH/SFTP"
   9229/tcp: "Node Inspector"
 
 map:
@@ -31,19 +31,19 @@ map:
 options:
   log_level: info
   rules_path: /config/Estada_PA
-  enable_sftp: false
-  sftp_port: 2222
-  sftp_username: estada
-  sftp_password: ""
-  enable_debug: false
+  enable_ssh: true
+  ssh_port: 2222
+  ssh_username: estada
+  ssh_password: estada
+  enable_debug: true
   debug_port: 9229
 
 schema:
   log_level: list(trace|debug|info|notice|warning|error|fatal)
   rules_path: str
-  enable_sftp: bool
-  sftp_port: port
-  sftp_username: str
-  sftp_password: password
+  enable_ssh: bool
+  ssh_port: port
+  ssh_username: str
+  ssh_password: str
   enable_debug: bool
   debug_port: port

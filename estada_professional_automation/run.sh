@@ -6,36 +6,46 @@ export NODE_ENV=production
 export HA_URL="ws://supervisor/core/websocket"
 export RULES_PATH="$(bashio::config 'rules_path')"
 export LOG_LEVEL="$(bashio::config 'log_level')"
-export ENABLE_SFTP="$(bashio::config 'enable_sftp')"
-export SFTP_PORT="$(bashio::config 'sftp_port')"
-export SFTP_USERNAME="$(bashio::config 'sftp_username')"
-export SFTP_PASSWORD="$(bashio::config 'sftp_password')"
+export ENABLE_SSH="$(bashio::config 'enable_ssh')"
+export SSH_PORT="$(bashio::config 'ssh_port')"
+export SSH_USERNAME="$(bashio::config 'ssh_username')"
+export SSH_PASSWORD="$(bashio::config 'ssh_password')"
 export ENABLE_DEBUG="$(bashio::config 'enable_debug')"
 export DEBUG_PORT="$(bashio::config 'debug_port')"
 
 mkdir -p "${RULES_PATH}"
 
-setup_sftp() {
-	if ! bashio::config.true 'enable_sftp'; then
-		echo "[INFO] SFTP is disabled"
+setup_ssh() {
+	if ! bashio::config.true 'enable_ssh'; then
+		echo "[INFO] SSH is disabled"
 		return
 	fi
 
-	if [ -z "${SFTP_PASSWORD}" ]; then
-		echo "[ERROR] SFTP is enabled, but no sftp_password is configured"
+	if [ -z "${SSH_PASSWORD}" ]; then
+		echo "[ERROR] SSH is enabled, but no ssh_password is configured"
 		exit 1
 	fi
 
-	if ! id -u "${SFTP_USERNAME}" >/dev/null 2>&1; then
-		addgroup -S sftpusers >/dev/null 2>&1 || true
-		adduser -D -S -s /sbin/nologin -G sftpusers "${SFTP_USERNAME}"
+	if ! getent group sshusers >/dev/null 2>&1; then
+		addgroup -S sshusers >/dev/null 2>&1 || true
 	fi
 
-	echo "${SFTP_USERNAME}:${SFTP_PASSWORD}" | chpasswd
+	if id -u "${SSH_USERNAME}" >/dev/null 2>&1; then
+		shell="$(getent passwd "${SSH_USERNAME}" | cut -d: -f7 || true)"
+		if [ "${shell}" != "/bin/sh" ]; then
+			deluser "${SSH_USERNAME}" >/dev/null 2>&1 || true
+		fi
+	fi
+
+	if ! id -u "${SSH_USERNAME}" >/dev/null 2>&1; then
+		adduser -D -s /bin/sh -G sshusers -h "${RULES_PATH}" "${SSH_USERNAME}"
+	fi
+
+	echo "${SSH_USERNAME}:${SSH_PASSWORD}" | chpasswd
 	ssh-keygen -A >/dev/null 2>&1
 
 	cat > /etc/ssh/sshd_config.estada <<EOF
-Port ${SFTP_PORT}
+Port ${SSH_PORT}
 Protocol 2
 PasswordAuthentication yes
 PermitRootLogin no
@@ -44,16 +54,14 @@ KbdInteractiveAuthentication no
 ChallengeResponseAuthentication no
 UsePAM no
 Subsystem sftp internal-sftp
-AllowUsers ${SFTP_USERNAME}
-PermitTTY no
-AllowTcpForwarding no
+AllowUsers ${SSH_USERNAME}
+PermitTTY yes
+AllowTcpForwarding yes
 X11Forwarding no
-ChrootDirectory /config
-ForceCommand internal-sftp -d /Estada_PA
 EOF
 
 	/usr/sbin/sshd -f /etc/ssh/sshd_config.estada
-	echo "[INFO] SFTP enabled on port ${SFTP_PORT} for user ${SFTP_USERNAME}"
+	echo "[INFO] SSH/SFTP enabled on port ${SSH_PORT} for user ${SSH_USERNAME}"
 }
 
 echo "[INFO] Estada Professional Automation starting"
@@ -64,7 +72,7 @@ if [ ! -f /app/dist/index.js ]; then
 	exit 1
 fi
 
-setup_sftp
+setup_ssh
 
 NODE_ARGS="--enable-source-maps"
 if bashio::config.true 'enable_debug'; then

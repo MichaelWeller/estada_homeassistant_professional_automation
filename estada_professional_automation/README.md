@@ -13,32 +13,47 @@ The add-on manages user rules in:
 On first start, the add-on copies the starter project from `project-template/` into this directory.
 Existing files are never overwritten.
 
-## SFTP access (optional)
+## VS Code Remote-SSH (default)
 
-This add-on can start an internal SFTP server so rule files can be edited remotely.
+This add-on starts SSH/SFTP by default, so VS Code can connect directly.
 
-Enable these options in the add-on configuration:
+Default add-on options:
 
 ```yaml
-enable_sftp: true
-sftp_port: 2222
-sftp_username: estada
-sftp_password: "your-strong-password"
+enable_ssh: true
+ssh_port: 2222
+ssh_username: estada
+ssh_password: estada
 ```
 
-Connection details:
+If needed, you can disable SSH later with `enable_ssh: false`.
+
+### Connect VS Code to Home Assistant
+
+1. Install the VS Code extension **Remote - SSH**.
+2. In Home Assistant, open the add-on config and verify SSH options.
+3. Restart the add-on after any SSH option changes.
+4. In VS Code, run **Remote-SSH: Add New SSH Host...** and add:
+
+```text
+ssh estada@<HOME_ASSISTANT_IP> -p 2222
+```
+
+5. Connect with **Remote-SSH: Connect to Host...** and enter the password.
+6. Open folder `/config/Estada_PA` on the remote host.
+
+Connection parameters:
 
 - Host: Home Assistant host/IP
-- Port: `sftp_port` (default `2222`)
-- User: `sftp_username`
-- Password: `sftp_password`
-- Remote start directory: `/Estada_PA`
+- Port: `ssh_port` (default `2222`)
+- User: `ssh_username` (default `estada`)
+- Password: `ssh_password` (default `estada`)
 
-## Debugging (optional)
+## Debugging (default enabled)
 
-Node Inspector can be enabled for runtime debugging.
+Node Inspector is enabled by default for runtime debugging.
 
-Enable these options in the add-on configuration:
+Default debug options:
 
 ```yaml
 enable_debug: true
@@ -50,3 +65,11 @@ Notes:
 - Inspector listens on the configured `debug_port` (default `9229`).
 - Source maps are enabled for app code and dynamically compiled rule files.
 - Restart the add-on after changing debug options.
+
+### Attach debugger from VS Code
+
+1. Open **Run and Debug** in VS Code.
+2. Create an **Attach** config for Node.js with:
+   - address: Home Assistant host/IP
+   - port: 9229 (or your `debug_port`)
+3. Start the attach configuration.
