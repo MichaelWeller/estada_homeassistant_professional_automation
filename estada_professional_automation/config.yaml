@@ -1,5 +1,5 @@
 ﻿name: "Estada Professional Automation"
-version: "0.2.10"
+version: "0.2.11"
 slug: "estada_professional_automation"
 description: "Professional TypeScript automation engine for Home Assistant."
 maintainer: "Michael Weller"
@@ -25,8 +25,7 @@ ports_description:
   9229/tcp: "Node Inspector"
 
 map:
-  - type: homeassistant_config
-    read_only: false
+  - config:rw
 
 options:
   log_level: info

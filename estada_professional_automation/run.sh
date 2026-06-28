@@ -106,3 +106,4 @@ if bashio::config.true 'enable_debug'; then
 fi
 
 exec node ${NODE_ARGS} /app/dist/index.js
+
